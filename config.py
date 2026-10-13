@@ -8,6 +8,12 @@ STATE_FILE = BASE_DIR / "dashboard_state.json"
 SETTINGS_FILE = BASE_DIR / "settings.json"
 AUDIO_FILE = BASE_DIR / "jarvis_audio.wav"
 INTRO_VIDEO_PATH = ASSETS_DIR / "intro.mp4"
+INTRO_AUDIO_PATH = ASSETS_DIR / "intro_audio.wav"
+
+# Dashboard <-> voice engine intro handshake (via dashboard_state.json "intro_active")
+INTRO_STALE_SECONDS = 45     # An intro flag older than this is treated as stale (e.g. dashboard crashed)
+INTRO_STARTUP_GRACE = 12.0   # How long main.py waits for the dashboard to announce its intro
+INTRO_POST_SILENCE = 0.8     # Let the intro audio tail die out before calibrating the mic
 
 # Audio & Recording
 SAMPLE_RATE = 16000
@@ -21,6 +27,8 @@ POST_ROLL_SECONDS = 0.3     # Keep 300ms after silence trigger to prevent cutoff
 # Adaptive threshold defaults
 DEFAULT_SPEECH_THRESHOLD = 0.014
 DEFAULT_SILENCE_THRESHOLD = 0.009
+THRESHOLD_FLOOR = 0.010     # Never calibrate below this (mic self-noise)
+THRESHOLD_CEILING = 0.022   # Never calibrate above this, so normal speech can always cross it
 
 # Whisper Configuration
 WHISPER_MODEL = "base"

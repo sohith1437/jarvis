@@ -7,6 +7,8 @@ from config import (
     OLLAMA_URL,
     OLLAMA_MODEL,
     OLLAMA_TIMEOUT,
+    INTRO_STARTUP_GRACE,
+    INTRO_POST_SILENCE,
     load_settings
 )
 from commands import handle_pc_command, execute_command
@@ -14,9 +16,11 @@ from core.state_manager import (
     update_state,
     log_activity,
     record_conversation,
-    pop_command
+    pop_command,
+    is_intro_active
 )
 from core.audio_pipeline import (
+    get_whisper_model,
     calibrate_ambient_noise,
     record_audio_stream,
     transcribe_audio,
@@ -290,6 +294,47 @@ def conversation_mode():
 
 
 # ==========================================
+# STARTUP INTRO HANDSHAKE
+# ==========================================
+
+def wait_for_intro_to_finish():
+    """
+    Block until the dashboard's startup intro has finished or been skipped.
+
+    The dashboard sets "intro_active" in dashboard_state.json. If the dashboard never
+    announces an intro (not running, or intro skipped), we stop waiting after a short
+    grace period. While waiting we preload the Whisper model so startup stays fast.
+    """
+    print("\n⏳ Waiting for dashboard intro to finish...")
+    started = time.time()
+    seen_intro = False
+    model_loaded = False
+
+    while True:
+        active = is_intro_active()
+        if active:
+            seen_intro = True
+        elif seen_intro:
+            break  # Intro played and has now finished or been skipped
+        elif time.time() - started > INTRO_STARTUP_GRACE:
+            break  # Dashboard never announced an intro
+
+        if not model_loaded:
+            try:
+                get_whisper_model()  # Preload while the intro plays (no mic or speaker use)
+            except Exception as e:
+                print(f"⚠️ Whisper preload failed: {e}")
+            model_loaded = True
+            continue
+
+        time.sleep(0.2)
+
+    # Let the tail of the intro audio die away so the mic calibrates in true silence
+    time.sleep(INTRO_POST_SILENCE)
+    print("✅ Intro finished. Starting voice engine.")
+
+
+# ==========================================
 # MAIN EXECUTION ENTRY POINT
 # ==========================================
 
@@ -299,7 +344,10 @@ def main():
     print("     Personal Local AI Voice Assistant")
     print("=" * 50)
 
-    # Calibrate ambient noise floor
+    # Stay completely silent (no speech, no mic calibration) while the dashboard intro plays
+    wait_for_intro_to_finish()
+
+    # Room is quiet now: calibrate the ambient noise floor
     calibrate_ambient_noise()
 
     update_state(

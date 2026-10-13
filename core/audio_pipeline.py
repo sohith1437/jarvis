@@ -16,6 +16,8 @@ from config import (
     POST_ROLL_SECONDS,
     DEFAULT_SPEECH_THRESHOLD,
     DEFAULT_SILENCE_THRESHOLD,
+    THRESHOLD_FLOOR,
+    THRESHOLD_CEILING,
     AUDIO_FILE,
     WHISPER_MODEL,
     WHISPER_DEVICE,
@@ -44,10 +46,15 @@ def get_whisper_model():
 
 
 def calibrate_ambient_noise():
-    """Calibrate ambient noise level over 0.5s to adaptively tune speech threshold."""
+    """
+    Calibrate ambient noise level over ~1s to adaptively tune the speech threshold.
+    Must be called while the room is quiet (i.e. AFTER the startup intro audio has ended).
+    Uses the median of 100ms chunk levels so a single click or cough can't inflate it.
+    """
     global _ambient_noise_level
     try:
-        sample_count = int(SAMPLE_RATE * 0.5)
+        chunk_samples = int(SAMPLE_RATE * CHUNK_DURATION)
+        sample_count = chunk_samples * 10
         recorded = sd.rec(
             sample_count,
             samplerate=SAMPLE_RATE,
@@ -55,9 +62,11 @@ def calibrate_ambient_noise():
             dtype="float32"
         )
         sd.wait()
-        rms = float(np.sqrt(np.mean(recorded ** 2)))
-        # Dynamically set threshold: baseline * 2.8, bounded between 0.010 and 0.035
-        _ambient_noise_level = max(0.010, min(rms * 2.8, 0.035))
+        chunks = recorded[:, 0].reshape(10, chunk_samples)
+        chunk_levels = np.sqrt(np.mean(chunks ** 2, axis=1))
+        rms = float(np.median(chunk_levels))
+        # Threshold = baseline * 2.5, kept inside [THRESHOLD_FLOOR, THRESHOLD_CEILING]
+        _ambient_noise_level = max(THRESHOLD_FLOOR, min(rms * 2.5, THRESHOLD_CEILING))
         print(f"🎙️ Ambient noise calibrated: baseline RMS={rms:.4f} -> threshold={_ambient_noise_level:.4f}")
     except Exception as e:
         print(f"⚠️ Ambient calibration fallback: {e}")

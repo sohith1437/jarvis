@@ -1,8 +1,9 @@
 import os
 import json
+import time
 import tempfile
 from datetime import datetime
-from config import STATE_FILE
+from config import STATE_FILE, INTRO_STALE_SECONDS
 from core.system_info import get_system_telemetry, check_services
 
 MAX_HISTORY = 60
@@ -133,6 +134,22 @@ def pop_command():
         write_state(data)
         return cmd
     return None
+
+
+def set_intro_active(active):
+    """Dashboard -> voice engine handshake: publish whether the startup intro is playing."""
+    data = read_state()
+    data["intro_active"] = bool(active)
+    data["intro_updated_at"] = time.time()
+    write_state(data)
+
+
+def is_intro_active():
+    """True while the dashboard intro is playing. A stale flag (dashboard crashed) counts as False."""
+    data = read_state()
+    if not data.get("intro_active"):
+        return False
+    return (time.time() - data.get("intro_updated_at", 0)) < INTRO_STALE_SECONDS
 
 
 def clear_activity():

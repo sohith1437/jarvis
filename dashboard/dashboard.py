@@ -12,6 +12,7 @@ if str(BASE_DIR) not in sys.path:
 from config import (
     STATE_FILE,
     INTRO_VIDEO_PATH,
+    INTRO_AUDIO_PATH,
     load_settings,
     save_settings
 )
@@ -21,7 +22,8 @@ from core.state_manager import (
     update_state,
     log_activity,
     enqueue_command,
-    clear_activity
+    clear_activity,
+    set_intro_active
 )
 from commands import execute_command
 
@@ -61,6 +63,12 @@ class DashboardBridge(QObject):
         self._settings = load_settings()
         return self._settings
 
+    @Slot(bool)
+    def setIntroActive(self, active):
+        """Tell the voice engine (main.py) whether the startup intro is still playing."""
+        set_intro_active(active)
+        log_activity("Intro started" if active else "Intro finished", "system")
+
     @Slot()
     def clearLogs(self):
         """Clear activity history."""
@@ -92,12 +100,27 @@ def main():
         "introVideoSource",
         QUrl.fromLocalFile(str(INTRO_VIDEO_PATH)).toString()
     )
+    engine.rootContext().setContextProperty(
+        "introAudioSource",
+        QUrl.fromLocalFile(str(INTRO_AUDIO_PATH)).toString()
+    )
+
+    # Skip the intro entirely if the user disabled it or the audio track is missing
+    skip_intro = bool(bridge._settings.get("skip_intro_startup", False)) or not INTRO_AUDIO_PATH.exists()
+    engine.rootContext().setContextProperty("skipIntro", skip_intro)
+
+    # Announce the intro BEFORE the window appears so main.py never speaks over it
+    set_intro_active(not skip_intro)
 
     qml_file = Path(__file__).parent / "main.qml"
     engine.load(str(qml_file))
 
+    # Never leave the voice engine waiting on an intro that can no longer finish
+    app.aboutToQuit.connect(lambda: set_intro_active(False))
+
     if not engine.rootObjects():
         print("❌ Error: Could not load main.qml")
+        set_intro_active(False)
         sys.exit(-1)
 
     root = engine.rootObjects()[0]

@@ -863,33 +863,6 @@ Item {
 
 
     // =========================================================
-    // SMALL STAR / PARTICLE
-    // =========================================================
-
-    Text {
-
-        id: star
-
-        anchors.right: parent.right
-
-        anchors.rightMargin: 130
-
-        anchors.bottom: parent.bottom
-
-        anchors.bottomMargin: 100
-
-        text: "✦"
-
-        color: "#ffffff"
-
-        font.pixelSize: 22
-
-        opacity: 0
-
-    }
-
-
-    // =========================================================
     // STARTUP TIMELINE
     // =========================================================
 
@@ -1033,24 +1006,6 @@ Item {
 
         PauseAnimation {
             duration: 1500
-        }
-
-
-        // -----------------------------------------------------
-        // 4.3 — STAR APPEARS
-        // -----------------------------------------------------
-
-        NumberAnimation {
-
-            target: star
-
-            property: "opacity"
-
-            from: 0
-
-            to: 0.8
-
-            duration: 400
         }
 
 

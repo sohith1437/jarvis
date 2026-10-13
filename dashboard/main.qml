@@ -37,7 +37,7 @@ Window {
     property int currentView: 0
 
     // Intro playback state
-    property bool introActive: true
+    property bool introActive: !skipIntro
 
     // =========================================================
     // BACKGROUND GRID & AMBIENT AURA
@@ -1172,52 +1172,76 @@ Window {
     }
 
     // =========================================================
-    // INTRO VIDEO PLAYBACK OVERLAY (Uploaded Reference Intro)
+    // STARTUP INTRO OVERLAY
+    // Crisp vector animation (renders at native resolution, no video
+    // scaling blur, no watermark) + the original intro voice track.
+    // Ends when BOTH the animation and the audio have finished, or on skip.
     // =========================================================
+
+    function endIntro() {
+        if (!window.introActive)
+            return;
+        introPlayer.stop();
+        window.introActive = false;
+        // Tell main.py the intro is over so it can calibrate the mic and greet
+        bridge.setIntroActive(false);
+    }
 
     Item {
         id: introOverlay
         anchors.fill: parent
         visible: window.introActive
 
+        property bool audioDone: false
+        property bool animDone: introAnimation.finished
+
+        function checkDone() {
+            if (audioDone && animDone)
+                window.endIntro();
+        }
+
+        onAudioDoneChanged: checkDone()
+        onAnimDoneChanged: checkDone()
+
         Rectangle {
             anchors.fill: parent
             color: "#010305"
         }
 
+        StartupAnimation {
+            id: introAnimation
+        }
+
         MediaPlayer {
             id: introPlayer
-            source: introVideoSource
+            source: introAudioSource
             audioOutput: AudioOutput {
                 volume: 1.0
             }
-            videoOutput: introVideoOutput
 
             Component.onCompleted: {
-                introPlayer.play();
+                if (window.introActive)
+                    introPlayer.play();
+            }
+
+            onMediaStatusChanged: {
+                if (introPlayer.mediaStatus === MediaPlayer.EndOfMedia)
+                    introOverlay.audioDone = true;
             }
 
             onErrorOccurred: function(error, errorString) {
-                console.log("Intro video playback notice:", errorString);
-                // Graceful fallback to dashboard if video fails
-                window.introActive = false;
+                console.log("Intro audio playback notice:", errorString);
+                // Never block startup on a missing or broken audio track
+                introOverlay.audioDone = true;
             }
         }
 
-        VideoOutput {
-            id: introVideoOutput
-            anchors.fill: parent
-            fillMode: VideoOutput.PreserveAspectFit
-        }
-
-        // Detect video completion
-        Connections {
-            target: introPlayer
-            function onMediaStatusChanged() {
-                if (introPlayer.mediaStatus === MediaPlayer.EndOfMedia) {
-                    window.introActive = false;
-                }
-            }
+        // Safety net: never keep the voice engine waiting longer than this
+        Timer {
+            interval: 16000
+            running: window.introActive
+            repeat: false
+            onTriggered: window.endIntro()
         }
 
         // Top-Right Skip Intro Button
@@ -1237,30 +1261,21 @@ Window {
                 anchors.centerIn: parent
                 spacing: 8
                 Text { text: "SKIP INTRO"; color: "#5de8ff"; font.pixelSize: 11; font.bold: true; font.letterSpacing: 1 }
-                Text { text: "▶"; color: "#5de8ff"; font.pixelSize: 10 }
+                Text { text: "\u25B6"; color: "#5de8ff"; font.pixelSize: 10 }
             }
 
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    introPlayer.stop();
-                    window.introActive = false;
-                }
+                onClicked: window.endIntro()
             }
         }
 
         // Keyboard Shortcut to Skip (ESC / Space)
         Item {
             focus: true
-            Keys.onEscapePressed: {
-                introPlayer.stop();
-                window.introActive = false;
-            }
-            Keys.onSpacePressed: {
-                introPlayer.stop();
-                window.introActive = false;
-            }
+            Keys.onEscapePressed: window.endIntro()
+            Keys.onSpacePressed: window.endIntro()
         }
     }
 }
