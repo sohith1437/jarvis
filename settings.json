@@ -1,0 +1,7 @@
+{
+    "voice_rate": 175,
+    "voice_volume": 1.0,
+    "speech_threshold": 0.014,
+    "wake_word_sensitivity": "normal",
+    "skip_intro_startup": false
+}

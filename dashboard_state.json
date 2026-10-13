@@ -1,0 +1,101 @@
+{
+  "state": "THINKING",
+  "user_text": "What is the time?",
+  "jarvis_text": "Thinking...",
+  "history": [
+    {
+      "role": "YOU",
+      "text": "What is the time?",
+      "time": "03:32 PM"
+    },
+    {
+      "role": "JARVIS",
+      "text": "It is 03:30 PM, boss.",
+      "time": "03:32 PM"
+    },
+    {
+      "role": "JARVIS",
+      "text": "Hello boss. JARVIS is online.",
+      "time": "06:55 PM"
+    },
+    {
+      "role": "JARVIS",
+      "text": "Hello boss. JARVIS is online.",
+      "time": "06:59 PM"
+    },
+    {
+      "role": "JARVIS",
+      "text": "Hello boss. JARVIS is online.",
+      "time": "10:46 PM"
+    },
+    {
+      "role": "JARVIS",
+      "text": "Yes boss. I'm listening.",
+      "time": "10:47 PM"
+    },
+    {
+      "role": "YOU",
+      "text": "What is the time?",
+      "time": "10:47 PM"
+    }
+  ],
+  "activity": [
+    {
+      "time": "22:47:24",
+      "event": "Command received: 'What is the time?'",
+      "type": "voice"
+    },
+    {
+      "time": "22:47:03",
+      "event": "Wake word 'Jarvis' detected",
+      "type": "voice"
+    },
+    {
+      "time": "22:46:24",
+      "event": "JARVIS System Online",
+      "type": "system"
+    },
+    {
+      "time": "18:59:23",
+      "event": "Wake word 'Jarvis' detected",
+      "type": "voice"
+    },
+    {
+      "time": "18:59:07",
+      "event": "JARVIS System Online",
+      "type": "system"
+    },
+    {
+      "time": "18:58:12",
+      "event": "Executed: System Information",
+      "type": "command"
+    },
+    {
+      "time": "18:58:10",
+      "event": "UI Command: system information",
+      "type": "command"
+    },
+    {
+      "time": "18:58:04",
+      "event": "Activity Log Cleared",
+      "type": "system"
+    }
+  ],
+  "telemetry": {
+    "cpu": 30,
+    "ram": 76,
+    "ram_text": "12.0 / 15.6 GB",
+    "gpu": 0,
+    "vram_text": "0.0 / 4.0 GB",
+    "gpu_temp": 47,
+    "disk": 76,
+    "disk_text": "212 / 279 GB"
+  },
+  "services": {
+    "ollama": true,
+    "whisper": true,
+    "tts": true,
+    "mic": true
+  },
+  "command_queue": []
+}
